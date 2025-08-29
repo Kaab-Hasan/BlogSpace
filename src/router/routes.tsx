@@ -14,6 +14,7 @@ const AuthorsPage = lazy(() => import('../pages/AuthorsPage.tsx'));
 const AboutPage = lazy(() => import('../pages/AboutPage.tsx'));
 const WritePage = lazy(() => import('../pages/WritePage.tsx'));
 const UserDashboard = lazy(() => import('../pages/UserDashboard.tsx'));
+const UserProfile = lazy(() => import('../pages/UserProfile.tsx'));
 
 // Loading component for lazy loaded pages
 const PageLoader = () => (
@@ -163,6 +164,18 @@ export const routes: RouteConfig[] = [
     showInNav: false,
     meta: {
       description: 'User dashboard',
+    },
+  },
+  {
+    id: 'user-profile',
+    path: '/profile',
+    component: UserProfile,
+    title: 'Profile',
+    requiresAuth: true,
+    allowedRoles: [UserRole.AUTHOR, UserRole.READER, UserRole.ADMIN],
+    showInNav: false,
+    meta: {
+      description: 'User profile settings',
     },
   },
 ];

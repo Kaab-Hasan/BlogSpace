@@ -87,6 +87,17 @@ async function makeRequest<T>(
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
+
+        // Add specific handling for common errors
+        if (response.status === 401) {
+          errorMessage = 'Authentication required. Please log in to continue.';
+        } else if (response.status === 403) {
+          errorMessage = 'You do not have permission to perform this action.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+
+        console.error(`API Error ${response.status}:`, errorData);
       } catch {
         // If JSON parsing fails, use status text
         errorMessage = response.statusText || errorMessage;
@@ -132,6 +143,13 @@ export class ApiService {
     });
   }
 
+  static async updateUser(userData: any): Promise<ApiResponse<any>> {
+    return makeRequest<any>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
   static async logout(): Promise<ApiResponse<{ message: string }>> {
     return makeRequest<{ message: string }>('/auth/logout', {
       method: 'POST',
@@ -173,6 +191,16 @@ export class ApiService {
   }
 
   static async createPost(postData: FormData): Promise<ApiResponse<any>> {
+    // Debug: Log what's being sent
+    console.log('Creating post with FormData:');
+    for (let [key, value] of postData.entries()) {
+      console.log(`${key}:`, value);
+    }
+
+    const token = getAuthToken();
+    console.log('Auth token exists:', !!token);
+    console.log('Auth token preview:', token ? `${token.substring(0, 20)}...` : 'none');
+
     return makeRequest<any>('/posts', {
       method: 'POST',
       body: postData,

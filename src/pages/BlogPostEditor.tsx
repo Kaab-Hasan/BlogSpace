@@ -329,12 +329,12 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({ onNavigate }) => {
                           {cat.name.replace(/_/g, ' ').toUpperCase()}
                         </MenuItem>
                       ))}
-                      {/* Fallback for when categories haven't loaded */}
-                      {categories.length === 0 && Object.values(PostCategory).map((cat) => (
-                        <MenuItem key={cat} value={cat}>
-                          {cat.replace(/_/g, ' ').toUpperCase()}
+                      {/* Show message when categories haven't loaded */}
+                      {categories.length === 0 && (
+                        <MenuItem disabled>
+                          Loading categories...
                         </MenuItem>
-                      ))}
+                      )}
                     </Select>
                   </CategorySelect>
                 </Box>

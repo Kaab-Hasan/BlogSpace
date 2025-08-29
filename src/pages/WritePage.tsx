@@ -170,15 +170,22 @@ const WritePage: React.FC<WritePageProps> = ({ onNavigate, onLogout, postId }) =
     setError(null);
     
     try {
+      // Get default category ID if no category selected
+      const defaultCategoryId = categories.length > 0 ? categories[0].id : null;
+
       const postData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         excerpt: formData.excerpt.trim() || undefined,
-        categories: formData.categories.length > 0 ? formData.categories : [PostCategory.TECHNOLOGY],
+        categories: formData.categories.length > 0 ? formData.categories : (defaultCategoryId ? [defaultCategoryId] : []),
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
         status: PostStatus.DRAFT,
         isFeatured: formData.isFeatured
       };
+
+      console.log('WritePage - Sending post data:', postData);
+      console.log('WritePage - Available categories:', categories);
+      console.log('WritePage - Selected categories:', formData.categories);
       
       let success = false;
       if (isEditing && postId) {
@@ -271,7 +278,7 @@ const WritePage: React.FC<WritePageProps> = ({ onNavigate, onLogout, postId }) =
                     onChange={(e) => handleInputChange('categories', [e.target.value])}
                   >
                     {categoryOptions.map((category) => (
-                      <MenuItem key={typeof category === 'object' ? category.id : category} value={typeof category === 'object' ? category.name : category}>
+                      <MenuItem key={typeof category === 'object' ? category.id : category} value={typeof category === 'object' ? category.id : category}>
                         {typeof category === 'object' ? category.name : formatCategoryName(category)}
                       </MenuItem>
                     ))}

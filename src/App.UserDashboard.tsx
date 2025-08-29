@@ -6,6 +6,7 @@ import { CacheProvider } from "@emotion/react";
 import theme from './theme/theme';
 import UserDashboard from './pages/UserDashboard';
 import BlogPostEditor from './pages/BlogPostEditor';
+import UserProfile from './pages/UserProfile';
 
 const createEmotionCache = () => {
   return createCache({
@@ -34,7 +35,7 @@ const App: React.FC = () => {
       case 'article':
         return <UserDashboard onNavigate={handleNavigation} />;
       case 'profile':
-        return <UserDashboard onNavigate={handleNavigation} />;
+        return <UserProfile onNavigate={handleNavigation} />;
       default:
         return <UserDashboard onNavigate={handleNavigation} />;
     }

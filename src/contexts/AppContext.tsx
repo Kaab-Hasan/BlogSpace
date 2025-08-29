@@ -97,6 +97,15 @@ interface AppState {
   categories: Category[];
   featuredAuthors: Author[];
   dashboardStats: DashboardStats | null;
+  userStats: {
+    totalPosts: number;
+    publishedPosts: number;
+    draftPosts: number;
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    viewsGrowth?: number;
+  } | null;
   notifications: Notification[];
   loading: boolean;
   error: string | null;
@@ -107,7 +116,8 @@ interface AppContextType extends AppState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
-  
+  updateUser: (userData: Partial<User>) => Promise<boolean>;
+
   // Data fetching actions
   fetchPosts: (params?: {
     page?: number;
@@ -180,6 +190,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     categories: [],
     featuredAuthors: [],
     dashboardStats: null,
+    userStats: null,
     notifications: [],
     loading: false,
     error: null,
@@ -403,6 +414,74 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const updateUser = useCallback(async (userData: Partial<User>): Promise<boolean> => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const response = await ApiService.updateUser(userData);
+
+      if (response.success && response.data) {
+        const updatedUser: User = {
+          ...state.user!,
+          ...response.data,
+          role: response.data.role === 'admin' ? UserRole.ADMIN :
+                response.data.role === 'user' ? UserRole.AUTHOR : UserRole.READER,
+        };
+
+        setState(prev => ({
+          ...prev,
+          user: updatedUser,
+          loading: false,
+          error: null,
+        }));
+
+        return true;
+      } else {
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: response.error || 'Update failed'
+        }));
+        return false;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Update failed';
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: errorMessage
+      }));
+      return false;
+    }
+  }, [state.user]);
+
+  // Calculate user stats from posts
+  const calculateUserStats = useCallback(() => {
+    if (!state.user || !state.posts) return null;
+
+    const userPosts = state.posts.filter(post =>
+      typeof post.author === 'object' ? post.author.id === state.user?.id : post.author === state.user?.id
+    );
+
+    return {
+      totalPosts: userPosts.length,
+      publishedPosts: userPosts.filter(p => p.status === 'published').length,
+      draftPosts: userPosts.filter(p => p.status === 'draft').length,
+      totalViews: userPosts.reduce((sum, post) => sum + (post.views || 0), 0),
+      totalLikes: userPosts.reduce((sum, post) => sum + (typeof post.likes === 'number' ? post.likes : 0), 0),
+      totalComments: userPosts.reduce((sum, post) => sum + (post.comments || 0), 0),
+      viewsGrowth: 0, // This would come from analytics
+    };
+  }, [state.user, state.posts]);
+
+  // Update user stats when posts change
+  useEffect(() => {
+    const newUserStats = calculateUserStats();
+    if (newUserStats && JSON.stringify(newUserStats) !== JSON.stringify(state.userStats)) {
+      setState(prev => ({ ...prev, userStats: newUserStats }));
+    }
+  }, [calculateUserStats, state.userStats]);
+
   // Data fetching methods
   const fetchPosts = useCallback(async (params?: {
     page?: number;
@@ -578,6 +657,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     AlertService.loading('Creating Post', 'Publishing your post...');
     
     try {
+      // Check if user is authenticated
+      if (!state.isAuthenticated || !state.user) {
+        AlertService.close();
+        AlertService.error('Authentication Required', 'Please log in to create posts.');
+        setState(prev => ({ ...prev, loading: false }));
+        return false;
+      }
+
+      // Check if token exists
+      const token = TokenManager.getToken();
+      if (!token) {
+        AlertService.close();
+        AlertService.error('Authentication Required', 'Please log in again to create posts.');
+        setState(prev => ({ ...prev, loading: false }));
+        return false;
+      }
+
+      console.log('Creating post with data:', postData);
+      console.log('User authenticated:', state.isAuthenticated);
+      console.log('Token exists:', !!token);
+
       const formData = ApiService.createPostFormData(postData);
       const response = await ApiService.createPost(formData);
       
@@ -945,6 +1045,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     login,
     logout,
     signup,
+    updateUser,
     fetchPosts,
     fetchCategories,
     fetchAuthors,

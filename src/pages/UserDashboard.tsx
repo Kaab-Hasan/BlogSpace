@@ -89,7 +89,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onLogout }) =
   };
 
   const handleProfileClick = () => {
-    console.log('Profile clicked');
+    onNavigate?.('profile');
   };
 
   const handleQuickAction = (action: string) => {
